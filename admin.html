@@ -1,0 +1,196 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Admin — Biblio PDF</title>
+  <link rel="icon" type="image/svg+xml" href="favicon.svg" />
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@500;700;800&family=Fredoka:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body class="admin-body">
+
+  <div class="toast" id="toast"></div>
+
+  <!-- Gate mot de passe -->
+  <div id="passwordGate" class="admin-password-gate">
+    <div class="modal-box">
+      <h2>Espace admin</h2>
+      <p>Entrez le mot de passe pour acceder a l'interface d'administration.</p>
+      <div class="modal-input-row">
+        <input type="password" id="passwordInput" placeholder="Mot de passe..." autocomplete="current-password" />
+        <button class="btn primary btn-sm" id="passwordConfirm">Entrer</button>
+      </div>
+      <p class="modal-note" id="passwordError" style="color:#c0392b;min-height:1.2em;"></p>
+      <p class="modal-note" style="margin-top:8px;">
+        <a href="index.html" style="color:var(--amber);font-weight:800;">&#8592; Retour au site</a>
+      </p>
+    </div>
+  </div>
+
+  <!-- Interface admin (cachee jusqu'au login) -->
+  <div id="adminContent" style="display:none;">
+    <header class="header">
+      <nav class="nav">
+        <a href="index.html" class="logo">
+          <div class="logo-icon">B</div>
+          <span>
+            <strong>Biblio PDF</strong>
+            <small>Interface admin</small>
+          </span>
+        </a>
+        <div style="display:flex;gap:10px;align-items:center;">
+          <span class="admin-badge">Admin</span>
+          <button class="btn secondary btn-sm" id="logoutBtn">Deconnexion</button>
+        </div>
+      </nav>
+    </header>
+
+    <div class="admin-title">
+      <h1>Gestion de la bibliotheque</h1>
+      <a href="index.html" class="btn secondary btn-sm">&#8592; Voir le site</a>
+    </div>
+
+    <div class="admin-layout">
+
+      <!-- Colonne gauche : upload -->
+      <div>
+        <div class="upload-card">
+          <h2>Ajouter un PDF</h2>
+
+          <div class="drop-zone" id="dropZone">
+            <div class="drop-icon">PDF</div>
+            <p><strong>Deposez un fichier PDF ici</strong></p>
+            <p>ou <strong style="color:var(--amber);cursor:none;" id="browseLink">cliquez pour parcourir</strong></p>
+            <small>Fichiers .pdf uniquement</small>
+          </div>
+          <input type="file" id="fileInputReal" accept=".pdf" />
+
+          <div class="file-selected hidden" id="fileSelectedInfo">
+            <span style="font-size:1.2rem;">&#128196;</span>
+            <span class="file-name" id="selectedFileName"></span>
+            <span class="file-size" id="selectedFileSize"></span>
+          </div>
+
+          <div class="upload-progress" id="uploadProgress">
+            <div class="upload-progress-bar" id="uploadProgressBar"></div>
+          </div>
+
+          <form id="pdfForm">
+            <div class="form-group">
+              <label>Titre *</label>
+              <input type="text" id="fTitle" placeholder="Titre du document" required />
+            </div>
+            <div class="form-group">
+              <label>Description</label>
+              <textarea id="fDesc" placeholder="Description courte du document..."></textarea>
+            </div>
+            <div class="form-row">
+              <div class="form-group">
+                <label>Categorie</label>
+                <input type="text" id="fCat" placeholder="ex: Informatique" list="catSuggestions" />
+                <datalist id="catSuggestions">
+                  <option value="Informatique">
+                  <option value="Mathematiques">
+                  <option value="Sciences">
+                  <option value="Histoire">
+                  <option value="Droit">
+                  <option value="Langues">
+                  <option value="Philosophie">
+                  <option value="General">
+                </datalist>
+              </div>
+              <div class="form-group">
+                <label>Nombre de pages</label>
+                <input type="number" id="fPages" placeholder="ex: 48" min="1" />
+              </div>
+            </div>
+            <button type="submit" class="btn primary" id="submitBtn" style="width:100%;margin-top:4px;">
+              Publier le document
+            </button>
+          </form>
+        </div>
+      </div>
+
+      <!-- Colonne droite : liste + historique -->
+      <div>
+        <div class="admin-list-card">
+          <div class="admin-tabs">
+            <button class="tab-btn active" data-tab="list">Documents (<span id="pdfCountBadge">0</span>)</button>
+            <button class="tab-btn" data-tab="submissions">Soumissions <span id="submissionsBadge" class="badge-new"></span></button>
+            <button class="tab-btn" data-tab="history">Telechargements</button>
+            <button class="tab-btn" data-tab="connections">Connexions</button>
+          </div>
+
+          <!-- Liste PDFs -->
+          <div class="tab-panel active" id="tab-list">
+            <div id="adminPdfList">
+              <div class="history-empty">Chargement...</div>
+            </div>
+          </div>
+
+          <!-- Soumissions publiques -->
+          <div class="tab-panel" id="tab-submissions">
+            <div id="submissionsList">
+              <div class="history-empty">Chargement...</div>
+            </div>
+          </div>
+
+          <!-- Historique telechargements -->
+          <div class="tab-panel" id="tab-history">
+            <div style="margin-bottom:14px;">
+              <input type="text" id="historySearch" placeholder="Filtrer par pseudo ou document..."
+                style="width:100%;padding:10px 14px;border:4px solid var(--outline);border-radius:16px;background:var(--cream);font:inherit;font-size:.93rem;outline:none;" />
+            </div>
+            <div style="overflow-x:auto;">
+              <table class="history-table" id="historyTable">
+                <thead>
+                  <tr>
+                    <th>Document</th>
+                    <th>Pseudo</th>
+                    <th>Date</th>
+                  </tr>
+                </thead>
+                <tbody id="historyBody">
+                  <tr><td colspan="3" class="history-empty">Chargement...</td></tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          <!-- Connexions -->
+          <div class="tab-panel" id="tab-connections">
+            <div style="margin-bottom:14px;">
+              <input type="text" id="connSearch" placeholder="Filtrer par pseudo, pays, ville..."
+                style="width:100%;padding:10px 14px;border:4px solid var(--outline);border-radius:16px;background:var(--cream);font:inherit;font-size:.93rem;outline:none;" />
+            </div>
+            <div style="overflow-x:auto;">
+              <table class="history-table" id="connectionsTable">
+                <thead>
+                  <tr>
+                    <th>Pseudo</th>
+                    <th>Localisation</th>
+                    <th>IP</th>
+                    <th>Vient de</th>
+                    <th>Date</th>
+                  </tr>
+                </thead>
+                <tbody id="connectionsBody">
+                  <tr><td colspan="5" class="history-empty">Chargement...</td></tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="config.js"></script>
+  <script src="admin.js"></script>
+</body>
+</html>

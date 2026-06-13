@@ -1,0 +1,242 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Soumettre un PDF — Biblio PDF</title>
+  <link rel="icon" type="image/svg+xml" href="favicon.svg" />
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@500;700;800&family=Fredoka:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+
+  <div class="toast" id="toast"></div>
+
+  <header class="header">
+    <nav class="nav">
+      <a href="index.html" class="logo">
+        <div class="logo-icon">B</div>
+        <span>
+          <strong>Biblio PDF</strong>
+          <small>Acces libre &amp; gratuit</small>
+        </span>
+      </a>
+      <div class="nav-links" style="display:flex;">
+        <a href="index.html#pdfs">Documents</a>
+        <a href="submit.html">Soumettre un PDF</a>
+        <button class="nav-pseudo" id="navPseudo" style="border:none;">
+          <span class="pseudo-dot" id="pseudoDot"></span>
+          <span id="navPseudoLabel">Choisir un pseudo</span>
+        </button>
+      </div>
+    </nav>
+  </header>
+
+  <!-- Modal pseudo -->
+  <div class="modal-overlay hidden" id="pseudoModal">
+    <div class="modal-box welcome-modal">
+      <div class="welcome-badge">Bienvenue</div>
+      <h2>Choisissez un pseudo</h2>
+      <p>Il vous permet de suivre vos soumissions.</p>
+      <div class="modal-input-row">
+        <input type="text" id="pseudoInput" placeholder="Votre pseudo..." maxlength="30" autocomplete="off" />
+        <button class="btn primary btn-sm" id="pseudoConfirm">Valider</button>
+      </div>
+      <button class="btn-skip" id="pseudoSkip">Continuer sans pseudo</button>
+    </div>
+  </div>
+
+  <main>
+    <section class="section">
+      <div class="section-heading">
+        <p>Contribuer</p>
+        <h2>Soumettre un document</h2>
+      </div>
+      <p class="submit-desc" style="margin-bottom:28px;">
+        Vous avez un PDF utile a partager ? Soumettez-le ici. Il sera examine par l'administrateur avant publication.
+      </p>
+
+      <div class="submit-card">
+        <div class="submit-drop-zone" id="submitDropZone">
+          <div class="drop-icon">PDF</div>
+          <p><strong>Deposez votre PDF ici</strong></p>
+          <p>ou <strong id="submitBrowseLink">cliquez pour parcourir</strong></p>
+          <small>Fichiers .pdf uniquement</small>
+        </div>
+        <input type="file" id="submitFileInput" accept=".pdf" style="display:none;" />
+
+        <div class="file-selected hidden" id="submitFileInfo">
+          <span>&#128196;</span>
+          <span class="file-name" id="submitFileName"></span>
+          <span class="file-size" id="submitFileSize"></span>
+        </div>
+
+        <div class="submit-form-grid">
+          <div class="form-group" style="grid-column:1/-1;">
+            <label>Votre pseudo *</label>
+            <input type="text" id="submitPseudo" placeholder="Choisissez un pseudo..." maxlength="30" autocomplete="off" />
+          </div>
+          <div class="form-group">
+            <label>Titre du document *</label>
+            <input type="text" id="submitTitle" placeholder="Ex : Introduction a la philosophie" maxlength="120" />
+          </div>
+          <div class="form-group">
+            <label>Categorie</label>
+            <input type="text" id="submitCat" placeholder="Ex : Philosophie, Sciences..." list="submitCatList" />
+            <datalist id="submitCatList">
+              <option value="Informatique"><option value="Mathematiques">
+              <option value="Sciences"><option value="Histoire">
+              <option value="Droit"><option value="Langues">
+              <option value="Philosophie"><option value="General">
+            </datalist>
+          </div>
+          <div class="form-group" style="grid-column:1/-1;">
+            <label>Description (optionnel)</label>
+            <textarea id="submitDesc" placeholder="De quoi parle ce document ?" rows="3"></textarea>
+          </div>
+        </div>
+
+        <div class="upload-progress" id="submitProgress">
+          <div class="upload-progress-bar" id="submitProgressBar"></div>
+        </div>
+
+        <button class="btn primary" id="submitBtn" style="width:100%;">Soumettre le document</button>
+      </div>
+    </section>
+  </main>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="config.js"></script>
+  <script>
+    const { createClient } = supabase;
+    const db = createClient(SUPABASE_URL, SUPABASE_KEY);
+
+    let userPseudo = localStorage.getItem('biblio_pseudo') || null;
+
+    function refreshNav() {
+      const label = document.getElementById('navPseudoLabel');
+      const dot   = document.getElementById('pseudoDot');
+      if (userPseudo) {
+        label.textContent = userPseudo;
+        if (dot) dot.style.background = 'var(--green)';
+      }
+    }
+    refreshNav();
+
+    function openPseudoModal(onConfirm) {
+      const modal = document.getElementById('pseudoModal');
+      const input = document.getElementById('pseudoInput');
+      const btn   = document.getElementById('pseudoConfirm');
+      if (userPseudo) input.value = userPseudo;
+      modal.classList.remove('hidden');
+      input.focus();
+      function confirm() {
+        const val = input.value.trim();
+        if (!val) return;
+        userPseudo = val;
+        localStorage.setItem('biblio_pseudo', userPseudo);
+        refreshNav();
+        modal.classList.add('hidden');
+        btn.removeEventListener('click', confirm);
+        if (onConfirm) onConfirm();
+      }
+      btn.addEventListener('click', confirm);
+      input.addEventListener('keydown', e => { if (e.key === 'Enter') confirm(); });
+    }
+
+    document.getElementById('navPseudo').addEventListener('click', () => openPseudoModal(null));
+    document.getElementById('pseudoSkip').addEventListener('click', () => {
+      document.getElementById('pseudoModal').classList.add('hidden');
+    });
+
+    /* Pré-remplir le champ pseudo si déjà connu */
+    window.addEventListener('DOMContentLoaded', () => {
+      if (userPseudo) document.getElementById('submitPseudo').value = userPseudo;
+    });
+    let submitFile = null;
+
+    function showToast(msg) {
+      const t = document.getElementById('toast');
+      t.textContent = msg; t.classList.add('show');
+      setTimeout(() => t.classList.remove('show'), 2800);
+    }
+
+    function formatSize(bytes) {
+      if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(0) + ' Ko';
+      return (bytes / (1024 * 1024)).toFixed(1) + ' Mo';
+    }
+
+    function setFile(f) {
+      submitFile = f;
+      document.getElementById('submitFileName').textContent = f.name;
+      document.getElementById('submitFileSize').textContent = formatSize(f.size);
+      document.getElementById('submitFileInfo').classList.remove('hidden');
+      const t = document.getElementById('submitTitle');
+      if (!t.value) t.value = f.name.replace(/\.pdf$/i, '').replace(/[-_]/g, ' ');
+    }
+
+    const drop  = document.getElementById('submitDropZone');
+    const input = document.getElementById('submitFileInput');
+    document.getElementById('submitBrowseLink').addEventListener('click', () => input.click());
+    drop.addEventListener('click', () => input.click());
+    drop.addEventListener('dragover', e => { e.preventDefault(); drop.classList.add('drag-over'); });
+    drop.addEventListener('dragleave', () => drop.classList.remove('drag-over'));
+    drop.addEventListener('drop', e => {
+      e.preventDefault(); drop.classList.remove('drag-over');
+      const f = e.dataTransfer.files[0];
+      if (f && f.type === 'application/pdf') setFile(f);
+      else showToast('Veuillez deposer un fichier PDF.');
+    });
+    input.addEventListener('change', () => { if (input.files[0]) setFile(input.files[0]); });
+
+    document.getElementById('submitBtn').addEventListener('click', async () => {
+      if (!submitFile) { showToast('Veuillez selectionner un fichier PDF.'); return; }
+      const title = document.getElementById('submitTitle').value.trim();
+      if (!title) { showToast('Le titre est obligatoire.'); return; }
+
+      const pseudoVal = document.getElementById('submitPseudo').value.trim();
+      if (!pseudoVal) { showToast('Le pseudo est obligatoire.'); document.getElementById('submitPseudo').focus(); return; }
+      userPseudo = pseudoVal;
+      localStorage.setItem('biblio_pseudo', userPseudo);
+
+      const btn  = document.getElementById('submitBtn');
+      const prog = document.getElementById('submitProgress');
+      const bar  = document.getElementById('submitProgressBar');
+      btn.disabled = true; btn.textContent = 'Envoi en cours...';
+      prog.classList.add('visible'); bar.style.width = '30%';
+
+      try {
+        const fileName = `${Date.now()}_${submitFile.name.replace(/\s+/g, '_')}`;
+        const { error: storErr } = await db.storage
+          .from('submissions').upload(fileName, submitFile, { contentType: 'application/pdf', upsert: false });
+        if (storErr) throw storErr;
+
+        bar.style.width = '70%';
+        const { data: urlData } = db.storage.from('submissions').getPublicUrl(fileName);
+
+        const { error: dbErr } = await db.from('submissions').insert({
+          title,
+          description: document.getElementById('submitDesc').value.trim() || null,
+          category:    document.getElementById('submitCat').value.trim()  || 'General',
+          user_pseudo: userPseudo,
+          file_url:    urlData.publicUrl,
+          file_name:   submitFile.name,
+          file_size:   formatSize(submitFile.size),
+        });
+        if (dbErr) throw dbErr;
+
+        bar.style.width = '100%';
+        showToast('Document soumis ! Merci pour votre contribution.');
+        setTimeout(() => window.location.href = 'index.html', 2000);
+      } catch (err) {
+        showToast('Erreur lors de la soumission.');
+        console.error(err);
+        btn.disabled = false; btn.textContent = 'Soumettre le document';
+        setTimeout(() => { prog.classList.remove('visible'); bar.style.width = '0%'; }, 800);
+      }
+    });
+  </script>
+</body>
+</html>

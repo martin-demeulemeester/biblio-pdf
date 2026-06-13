@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Biblio PDF — Acces libre</title>
+  <link rel="icon" type="image/svg+xml" href="favicon.svg" />
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@500;700;800&family=Fredoka:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+
+  <button id="scrollTop" aria-label="Retour en haut">&#8593;</button>
+  <div class="scroll-progress" id="scrollProgress"></div>
+
+  <!-- Confettis -->
+  <div class="confetti c1"></div><div class="confetti c2"></div>
+  <div class="confetti c3"></div><div class="confetti c4"></div>
+  <div class="confetti c5"></div><div class="confetti c6"></div>
+  <div class="confetti c7"></div><div class="confetti c8"></div>
+  <div class="confetti c9"></div><div class="confetti c10"></div>
+  <div class="confetti c11"></div><div class="confetti c12"></div>
+
+  <!-- Formes décoratives -->
+  <svg class="deco-svg deco-a" viewBox="0 0 120 120" aria-hidden="true">
+    <rect x="10" y="10" width="100" height="100" rx="28" />
+  </svg>
+  <svg class="deco-svg deco-b" viewBox="0 0 120 120" aria-hidden="true">
+    <circle cx="60" cy="60" r="50" />
+  </svg>
+  <svg class="deco-svg deco-c" viewBox="0 0 120 120" aria-hidden="true">
+    <polygon points="60,10 110,100 10,100" />
+  </svg>
+
+  <!-- Visionneuse PDF plein ecran -->
+  <div class="modal-overlay hidden" id="pdfViewerModal">
+    <div class="pdf-viewer-box">
+      <div class="pdf-viewer-header">
+        <button class="pdf-viewer-close" id="pdfViewerClose">&#10005;</button>
+        <span class="pdf-viewer-title" id="pdfViewerTitle"></span>
+        <a id="pdfViewerDownload" href="" download class="btn primary btn-sm" target="_blank" rel="noopener">
+          &#8595; Telecharger
+        </a>
+      </div>
+      <iframe id="pdfViewerFrame" class="pdf-viewer-frame" src="" allowfullscreen></iframe>
+    </div>
+  </div>
+
+  <!-- Modal de bienvenue / pseudo -->
+  <div class="modal-overlay hidden" id="pseudoModal">
+    <div class="modal-box welcome-modal">
+      <div class="welcome-badge">Bienvenue</div>
+      <h2>Choisissez un pseudo</h2>
+      <p>Il vous permet de noter les documents et de garder un historique de vos telechargements. Vous pouvez aussi continuer sans pseudo.</p>
+      <div class="modal-input-row">
+        <input type="text" id="pseudoInput" placeholder="Votre pseudo..." maxlength="30" autocomplete="off" />
+        <button class="btn primary btn-sm" id="pseudoConfirm">Valider</button>
+      </div>
+      <button class="btn-skip" id="pseudoSkip">Continuer sans pseudo</button>
+    </div>
+  </div>
+
+  <!-- Toast -->
+  <div class="toast" id="toast"></div>
+  <div class="confetti-burst" id="confettiBurst"></div>
+
+  <header class="header">
+    <nav class="nav">
+      <a href="#" class="logo">
+        <div class="logo-icon">B</div>
+        <span>
+          <strong>Biblio PDF</strong>
+          <small>Acces libre &amp; gratuit</small>
+        </span>
+      </a>
+
+      <button class="menu-btn" id="menuBtn" aria-label="Menu" aria-expanded="false">
+        <span class="menu-icon">&#9776;</span>
+        <span class="close-icon">&#10005;</span>
+      </button>
+
+      <div class="nav-links" id="navLinks">
+        <a href="#pdfs" data-section="pdfs">Documents</a>
+        <a href="submit.html">Soumettre un PDF</a>
+        <button class="nav-pseudo" id="navPseudo" style="border:none;">
+          <span class="pseudo-dot" id="pseudoDot"></span>
+          <span id="navPseudoLabel">Choisir un pseudo</span>
+        </button>
+      </div>
+    </nav>
+  </header>
+
+  <main>
+
+    <!-- SECTION PDFs -->
+    <section class="section pdf-section reveal-section" id="pdfs">
+      <div class="section-heading">
+        <p>Documents</p>
+        <h2>Tous les fichiers disponibles.</h2>
+        <div class="section-stats">
+          <span class="stat-badge"><strong id="pdfCount">—</strong> <span id="pdfCountLabel">documents gratuits</span></span>
+          <span class="stat-badge"><strong id="totalDlCount">—</strong> <span id="dlCountLabel">telechargements</span></span>
+        </div>
+      </div>
+
+      <div class="search-bar reveal">
+        <span class="search-icon">Rechercher</span>
+        <input type="search" id="searchInput" placeholder="Titre, categorie, mot-cle..." autocomplete="off" />
+      </div>
+
+      <div class="pdf-filters reveal" id="pdfFilters">
+        <button class="filter-btn active" data-filter="all">Tous</button>
+      </div>
+
+      <div class="pdf-list" id="pdfGrid"></div>
+
+      <div class="empty-state" id="emptyState" style="display:none;">
+        <div class="empty-icon">?</div>
+        <p>Aucun document trouve pour cette recherche.</p>
+      </div>
+    </section>
+
+
+
+  </main>
+
+  <footer class="footer">
+    <div class="footer-inner">
+      <div class="footer-logo">
+        <div class="logo-icon">B</div>
+        Biblio PDF
+      </div>
+      <nav class="footer-nav">
+        <a href="#pdfs">Documents</a>
+        <a href="submit.html">Soumettre</a>
+        <a href="admin.html">Admin</a>
+      </nav>
+      <div class="footer-copy">
+        <p>Bibliotheque en acces libre</p>
+        <p>Tous les fichiers sont distribues gratuitement.</p>
+      </div>
+    </div>
+  </footer>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="config.js"></script>
+  <script src="script.js"></script>
+</body>
+</html>
