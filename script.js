@@ -243,8 +243,11 @@ function renderCards(list) {
   empty.style.display = 'none';
 
   filtered.forEach(pdf => {
-    const dlCount = downloadCounts[pdf.id] || 0;
-    const rating  = ratingsData[pdf.id] || { avg: 0, count: 0, myScore: 0 };
+    const dlCount       = downloadCounts[pdf.id] || 0;
+    const rating        = ratingsData[pdf.id] || { avg: 0, count: 0, myScore: 0 };
+    const dlDisplay     = boost(dlCount);
+    /* Les notes affichées sont toujours strictement inférieures aux téléchargements */
+    const ratingDisplay = rating.count > 0 ? Math.min(boost(rating.count), dlDisplay - 1) : 0;
     const card    = document.createElement('article');
     card.className = 'pdf-card-wide';
     card.dataset.id = pdf.id;
@@ -274,13 +277,13 @@ function renderCards(list) {
         <div class="pdf-stats">
           <div class="pdf-dl-count">
             <span class="arrow-icon">&#8595;</span>
-            <span>${boost(dlCount)} telechargement${boost(dlCount) !== 1 ? 's' : ''}</span>
+            <span>${dlDisplay} telechargement${dlDisplay !== 1 ? 's' : ''}</span>
           </div>
           <div class="stars-row">
             <div class="stars" data-pdf-id="${pdf.id}">
               ${starsHTML(Math.round(parseFloat(rating.avg)))}
             </div>
-            <span class="stars-count">${rating.count > 0 ? rating.avg + ' (' + boost(rating.count) + ')' : 'Pas encore note'}</span>
+            <span class="stars-count">${ratingDisplay > 0 ? rating.avg + ' (' + ratingDisplay + ')' : 'Pas encore note'}</span>
           </div>
         </div>
 
