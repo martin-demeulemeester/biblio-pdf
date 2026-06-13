@@ -17,11 +17,16 @@ if (!sessionId) {
 
 /* ─── Pseudo utilisateur ─── */
 let userPseudo = localStorage.getItem('biblio_pseudo') || null;
+let biblioPresenceChannel = null;  /* canal de présence temps réel */
 
 function savePseudo(p) {
   userPseudo = p.trim();
   localStorage.setItem('biblio_pseudo', userPseudo);
   document.getElementById('navPseudoLabel').textContent = userPseudo;
+  /* Met à jour la présence avec le nouveau pseudo */
+  if (biblioPresenceChannel) {
+    biblioPresenceChannel.track({ online_at: new Date().toISOString(), pseudo: userPseudo });
+  }
 }
 
 function openPseudoModal(onConfirm) {
@@ -677,9 +682,15 @@ function initPresence() {
     })
     .subscribe(async status => {
       if (status === 'SUBSCRIBED') {
-        await channel.track({ online_at: new Date().toISOString() });
+        await channel.track({
+          online_at: new Date().toISOString(),
+          pseudo:    userPseudo || 'Anonyme',
+        });
       }
     });
+
+  /* Si le pseudo change pendant la session, on met à jour la présence */
+  biblioPresenceChannel = channel;
 
   /* Quitter proprement le canal à la fermeture de l'onglet */
   window.addEventListener('beforeunload', () => { channel.untrack(); db.removeChannel(channel); });

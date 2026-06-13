@@ -22,6 +22,7 @@ function unlock() {
   content.style.display = 'block';
   loadAll();
   initCursor();
+  initOnlinePresence();
 }
 
 document.getElementById('passwordConfirm').addEventListener('click', checkPassword);
@@ -447,6 +448,52 @@ function renderConnections(rows) {
       <td>${date}</td>
     </tr>`;
   }).join('');
+}
+
+/* ─── Présence temps réel (visiteurs en ligne) ─── */
+function renderOnline(presences) {
+  const body  = document.getElementById('onlineBody');
+  const badge = document.getElementById('onlineBadge');
+  if (!body) return;
+
+  if (presences.length === 0) {
+    body.innerHTML = '<tr><td colspan="2" class="history-empty">Aucun visiteur en ligne actuellement.</td></tr>';
+    if (badge) badge.textContent = '0';
+    return;
+  }
+
+  if (badge) badge.textContent = presences.length;
+
+  body.innerHTML = presences.map(p => {
+    const pseudo = p.pseudo && p.pseudo !== 'Anonyme'
+      ? `<strong>${p.pseudo}</strong>`
+      : `<em style="color:var(--muted)">Anonyme</em>`;
+    let depuis = 'maintenant';
+    if (p.online_at) {
+      const sec = Math.floor((Date.now() - new Date(p.online_at).getTime()) / 1000);
+      if (sec >= 60) depuis = `${Math.floor(sec / 60)} min`;
+      else if (sec >= 5) depuis = `${sec} s`;
+    }
+    return `<tr><td>${pseudo}</td><td>${depuis}</td></tr>`;
+  }).join('');
+}
+
+function initOnlinePresence() {
+  const channel = db.channel('biblio-presence', {
+    config: { presence: { key: 'admin-' + Math.random().toString(36).slice(2) } },
+  });
+
+  channel
+    .on('presence', { event: 'sync' }, () => {
+      const state = channel.presenceState();
+      /* Chaque clé contient un tableau de métadonnées ; on prend la première */
+      const presences = Object.values(state)
+        .map(arr => arr[0])
+        .filter(Boolean);
+      renderOnline(presences);
+    })
+    /* On s'abonne SANS .track() : l'admin observe sans apparaitre dans la liste */
+    .subscribe();
 }
 
 /* Filtre connexions */
