@@ -49,10 +49,16 @@ function savePseudo(p) {
   }
 }
 
-function openPseudoModal(onConfirm) {
+function openPseudoModal(onConfirm, required = false) {
   const modal = document.getElementById('pseudoModal');
   const input = document.getElementById('pseudoInput');
   const btn   = document.getElementById('pseudoConfirm');
+  const skip  = document.getElementById('pseudoSkip');
+
+  /* En mode obligatoire (ex: téléchargement), on cache "Continuer sans pseudo" */
+  if (skip) skip.style.display = required ? 'none' : '';
+  const note = modal.querySelector('.pseudo-required-note');
+  if (note) note.style.display = required ? 'block' : 'none';
 
   if (userPseudo) input.value = userPseudo;
   modal.classList.remove('hidden');
@@ -437,10 +443,11 @@ function attachCardListeners() {
 
       if (!userPseudo) {
         e.preventDefault();
+        showToast('Un pseudo est obligatoire pour telecharger.');
         openPseudoModal(async () => {
           window.open(btn.href, '_blank');
           await doDownload();
-        });
+        }, true);
       } else {
         await doDownload();
       }
