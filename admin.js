@@ -223,6 +223,7 @@ async function loadAll() {
   renderHistory(allDownloads);
   renderRatings(allRatings);
   renderConnections(allConnections);
+  renderUsers(buildUserStats());
 }
 
 /* ─── Liste admin des PDFs ─── */
@@ -481,6 +482,104 @@ function renderConnections(rows) {
   }).join('');
 }
 
+/* ─── Utilisateurs (agrégation par pseudo) ─── */
+function buildUserStats() {
+  const users = {};
+  const get = (p) => {
+    const key = (p && p.trim()) ? p.trim() : 'Anonyme';
+    if (!users[key]) {
+      users[key] = { pseudo: key, connections: [], downloads: [], ratings: [], submissions: [] };
+    }
+    return users[key];
+  };
+
+  allConnections.forEach(c => get(c.user_pseudo).connections.push(c));
+  allDownloads.forEach(d => get(d.user_pseudo).downloads.push(d));
+  allRatings.forEach(r => get(r.user_pseudo).ratings.push(r));
+  allSubmissions.forEach(s => get(s.user_pseudo).submissions.push(s));
+
+  return Object.values(users);
+}
+
+/* Date la plus récente d'activité d'un utilisateur (pour le tri) */
+function userLastSeen(u) {
+  const dates = [];
+  u.connections.forEach(c => c.connected_at && dates.push(new Date(c.connected_at)));
+  u.downloads.forEach(d => d.downloaded_at && dates.push(new Date(d.downloaded_at)));
+  u.submissions.forEach(s => s.submitted_at && dates.push(new Date(s.submitted_at)));
+  return dates.length ? Math.max(...dates) : 0;
+}
+
+function pdfTitle(id) {
+  const pdf = allPdfs.find(p => p.id === id);
+  return pdf ? pdf.title : 'Document supprime';
+}
+
+function fmtDate(d) {
+  return d ? new Date(d).toLocaleString('fr-FR', { dateStyle: 'short', timeStyle: 'short' }) : '';
+}
+
+function renderUsers(users) {
+  const container = document.getElementById('usersList');
+  if (!container) return;
+
+  if (!users.length) {
+    container.innerHTML = '<div class="history-empty">Aucun utilisateur enregistre.</div>';
+    return;
+  }
+
+  const sorted = [...users].sort((a, b) => userLastSeen(b) - userLastSeen(a));
+
+  container.innerHTML = sorted.map(u => {
+    const lastConn = u.connections[0]; /* allConnections est trie du + recent au + ancien */
+    const loc = lastConn ? [lastConn.city, lastConn.region, lastConn.country].filter(Boolean).join(', ') : '';
+    const lastSeen = userLastSeen(u);
+
+    const dlList = u.downloads.length
+      ? u.downloads.map(d => `<li>${pdfTitle(d.pdf_id)} <span class="u-muted">${fmtDate(d.downloaded_at)}</span></li>`).join('')
+      : '<li class="u-muted">Aucun</li>';
+
+    const ratingList = u.ratings.length
+      ? u.ratings.map(r => `<li>${pdfTitle(r.pdf_id)} <span class="u-stars">${'★'.repeat(r.score)}${'☆'.repeat(5 - r.score)}</span> <span class="u-muted">${r.score}/5</span></li>`).join('')
+      : '<li class="u-muted">Aucune</li>';
+
+    const subList = u.submissions.length
+      ? u.submissions.map(s => `<li>${s.title} <span class="u-muted">(${s.status})</span></li>`).join('')
+      : '<li class="u-muted">Aucune</li>';
+
+    return `
+      <details class="user-card">
+        <summary>
+          <span class="u-name">${u.pseudo}</span>
+          <span class="u-counts">
+            <span title="Connexions">&#128279; ${u.connections.length}</span>
+            <span title="Telechargements">&#8595; ${u.downloads.length}</span>
+            <span title="Notes">&#9733; ${u.ratings.length}</span>
+            ${u.submissions.length ? `<span title="Soumissions">&#128228; ${u.submissions.length}</span>` : ''}
+          </span>
+          ${loc ? `<span class="u-loc">${loc}</span>` : ''}
+          ${lastSeen ? `<span class="u-last">${fmtDate(lastSeen)}</span>` : ''}
+        </summary>
+        <div class="user-detail">
+          <div class="u-block">
+            <h4>Telechargements (${u.downloads.length})</h4>
+            <ul>${dlList}</ul>
+          </div>
+          <div class="u-block">
+            <h4>Notes (${u.ratings.length})</h4>
+            <ul>${ratingList}</ul>
+          </div>
+          <div class="u-block">
+            <h4>Soumissions (${u.submissions.length})</h4>
+            <ul>${subList}</ul>
+          </div>
+          ${lastConn && lastConn.ip_address ? `<p class="u-ip">Derniere IP : <code>${lastConn.ip_address}</code></p>` : ''}
+        </div>
+      </details>
+    `;
+  }).join('');
+}
+
 /* ─── Présence temps réel (visiteurs en ligne) ─── */
 function renderOnline(presences) {
   const body  = document.getElementById('onlineBody');
@@ -614,6 +713,34 @@ document.getElementById('ratingsSearch')?.addEventListener('input', e => {
     );
   });
   renderRatings(filtered);
+});
+
+/* Refresh utilisateurs (recharge toutes les sources puis re-agrege) */
+document.getElementById('refreshUsers')?.addEventListener('click', async () => {
+  const btn = document.getElementById('refreshUsers');
+  btn.textContent = '...'; btn.disabled = true;
+  const [dlRes, ratingRes, connRes, subRes] = await Promise.all([
+    db.from('downloads').select('id, pdf_id, user_pseudo, session_id, downloaded_at').order('downloaded_at', { ascending: false }),
+    db.from('ratings').select('*'),
+    db.from('connections').select('*').order('connected_at', { ascending: false }),
+    db.from('submissions').select('*').order('submitted_at', { ascending: false }),
+  ]);
+  allDownloads   = dlRes.data     || [];
+  allRatings     = ratingRes.data || [];
+  allConnections = connRes.data   || [];
+  allSubmissions = subRes.data    || [];
+  const search = document.getElementById('usersSearch');
+  if (search) search.value = '';
+  renderUsers(buildUserStats());
+  btn.textContent = '↻'; btn.disabled = false;
+});
+
+/* Filtre utilisateurs par pseudo */
+document.getElementById('usersSearch')?.addEventListener('input', e => {
+  const q = e.target.value.toLowerCase().trim();
+  const all = buildUserStats();
+  if (!q) { renderUsers(all); return; }
+  renderUsers(all.filter(u => u.pseudo.toLowerCase().includes(q)));
 });
 
 /* ─── Tabs ─── */

@@ -1193,8 +1193,46 @@ main { flex: 1; }
 .history-table tr:hover td { background: var(--cream); }
 .history-empty { text-align: center; padding: 32px; color: var(--muted); font-weight: 700; }
 
+/* Cartes utilisateurs */
+.user-card {
+  border: 3px solid var(--outline); border-radius: 16px;
+  background: var(--white); margin-bottom: 12px;
+  box-shadow: 3px 3px 0 var(--outline); overflow: hidden;
+}
+.user-card summary {
+  display: flex; align-items: center; gap: 14px; flex-wrap: wrap;
+  padding: 12px 16px; cursor: pointer; list-style: none;
+  font-weight: 700; user-select: none;
+}
+.user-card summary::-webkit-details-marker { display: none; }
+.user-card summary::before {
+  content: '\25B6'; font-size: .7rem; color: var(--amber);
+  transition: transform .18s;
+}
+.user-card[open] summary::before { transform: rotate(90deg); }
+.user-card[open] summary { border-bottom: 3px solid var(--beige); background: var(--cream); }
+.u-name { font-family: "Baloo 2", sans-serif; font-weight: 800; color: var(--brown); font-size: 1.05rem; }
+.u-counts { display: flex; gap: 12px; font-size: .85rem; color: var(--ink); }
+.u-loc { font-size: .82rem; color: var(--muted); font-weight: 600; }
+.u-last { margin-left: auto; font-size: .8rem; color: var(--muted); font-weight: 600; }
+.user-detail {
+  padding: 14px 16px; display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 16px;
+}
+.u-block h4 {
+  margin: 0 0 8px; font-size: .82rem; text-transform: uppercase;
+  color: var(--brown); font-weight: 900; letter-spacing: .5px;
+}
+.u-block ul { list-style: none; margin: 0; padding: 0; }
+.u-block li { padding: 4px 0; font-size: .86rem; font-weight: 600; border-bottom: 1px solid var(--beige); }
+.u-block li:last-child { border-bottom: none; }
+.u-muted { color: var(--muted); font-weight: 500; font-size: .8rem; }
+.u-stars { color: var(--amber); }
+.u-ip { grid-column: 1 / -1; font-size: .8rem; color: var(--muted); font-weight: 600; }
+.u-ip code { background: var(--beige); padding: 2px 6px; border-radius: 6px; }
+
 /* Tabs admin */
-.admin-tabs { display: flex; gap: 8px; margin-bottom: 20px; }
+.admin-tabs { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 20px; }
 .tab-btn {
   border: 3px solid var(--outline); background: var(--white); color: var(--ink);
   padding: 8px 18px; border-radius: var(--radius-pill);
