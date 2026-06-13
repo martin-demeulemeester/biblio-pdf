@@ -587,10 +587,37 @@ scrollTopBtn.addEventListener('click', () => window.scrollTo({ top: 0, behavior:
 /* ─── Curseur personnalisé ─── */
 function updateCursorTargets() { /* curseur natif */ }
 
+/* ─── Détection de navigateur automatisé / bot ─── */
+function isLikelyBot() {
+  const ua = (navigator.userAgent || '').toLowerCase();
+
+  /* Signatures de bots et frameworks de scraping connus */
+  const BOT_UA = ['bot', 'crawl', 'spider', 'scrape', 'headless',
+    'phantom', 'puppeteer', 'playwright', 'selenium', 'python',
+    'curl', 'wget', 'httpclient', 'java/', 'go-http', 'okhttp',
+    'axios', 'node-fetch', 'lighthouse', 'pingdom', 'gtmetrix'];
+  if (BOT_UA.some(k => ua.includes(k))) return true;
+
+  /* WebDriver actif (Selenium, automatisation) */
+  if (navigator.webdriver) return true;
+
+  /* Navigateurs headless : pas de plugins ni de langues déclarées */
+  if (!navigator.languages || navigator.languages.length === 0) return true;
+
+  /* Chrome headless expose souvent un UA "HeadlessChrome" déjà capté ci-dessus,
+     mais on vérifie aussi l'absence d'écran réel */
+  if (window.outerWidth === 0 && window.outerHeight === 0) return true;
+
+  return false;
+}
+
 /* ─── Enregistrement de la connexion ─── */
 async function recordConnection() {
   if (sessionStorage.getItem('biblio_connected')) return;
   sessionStorage.setItem('biblio_connected', '1');
+
+  /* Ne pas appeler l'API IP ni enregistrer pour les bots détectés */
+  if (isLikelyBot()) return;
 
   const BOT_ORGS = ['amazon', 'aws', 'google', 'microsoft', 'cloudflare',
     'digitalocean', 'linode', 'ovh', 'hetzner', 'vultr', 'netlify',
