@@ -8,6 +8,26 @@ const db = createClient(SUPABASE_URL, SUPABASE_KEY);
 /* Nombre affiché = réel × 2 + 10 (côté interface uniquement) */
 const boost = n => n * 2 + 10;
 
+/* Géoloc du visiteur, remplie par recordConnection, utilisée pour les notifs */
+let visitorGeo = { country: null, city: null };
+
+/* Notifie l'admin via Discord (fire-and-forget, ne bloque jamais le téléchargement) */
+function notifyDownload(pdfId) {
+  try {
+    const pdf = allPdfs.find(p => p.id === pdfId);
+    fetch('/.netlify/functions/notify-download', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        title:   pdf ? pdf.title : 'Inconnu',
+        pseudo:  userPseudo || 'Anonyme',
+        country: visitorGeo.country,
+        city:    visitorGeo.city,
+      }),
+    }).catch(() => {});
+  } catch { /* silencieux */ }
+}
+
 /* ─── Session ID (invisible pour l'utilisateur, sert à différencier les pseudos identiques) ─── */
 let sessionId = localStorage.getItem('biblio_session');
 if (!sessionId) {
@@ -412,6 +432,7 @@ function attachCardListeners() {
         if (dlEl) dlEl.textContent = c + ' telechargement' + (c !== 1 ? 's' : '');
         spawnBurst();
         showToast('Telechargement enregistre !');
+        notifyDownload(pdfId);
       };
 
       if (!userPseudo) {
@@ -635,6 +656,9 @@ async function recordConnection() {
     /* Ignorer les IPs de datacenters / bots */
     const org = (geo.org || '').toLowerCase();
     if (BOT_ORGS.some(k => org.includes(k))) return;
+
+    /* Mémoriser la géoloc pour les notifications */
+    visitorGeo = { country: geo.country_name || null, city: geo.city || null };
 
     const rawRef = document.referrer;
     let referrer = 'Acces direct';
