@@ -18,6 +18,8 @@ exports.handler = async (event) => {
     ];
     if (lieu) fields.push({ name: 'Localisation', value: lieu, inline: true });
 
+    const userId = process.env.DISCORD_USER_ID;
+
     const payload = {
       username: 'Biblio PDF',
       embeds: [{
@@ -27,6 +29,12 @@ exports.handler = async (event) => {
         timestamp: new Date().toISOString(),
       }],
     };
+
+    /* Ping l'utilisateur si son ID est configure */
+    if (userId) {
+      payload.content = `<@${userId}>`;
+      payload.allowed_mentions = { users: [userId] };
+    }
 
     const res = await fetch(webhook, {
       method: 'POST',
