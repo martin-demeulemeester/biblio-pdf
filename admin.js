@@ -60,10 +60,6 @@ async function checkPassword() {
   }
 }
 
-if (sessionStorage.getItem('biblio_admin') === '1') {
-  unlock();
-}
-
 /* Curseur actif dès le chargement, même sur l'écran de login */
 initCursor();
 
@@ -572,3 +568,9 @@ document.querySelectorAll('.tab-btn').forEach(btn => {
 
 function updateCursorTargets() { /* curseur natif */ }
 function initCursor() { /* curseur natif */ }
+
+/* Auto-login si session active — placé en fin de fichier pour que toutes
+   les variables (allPdfs, onlineChannel, etc.) soient initialisées avant unlock() */
+if (sessionStorage.getItem('biblio_admin') === '1') {
+  unlock();
+}
