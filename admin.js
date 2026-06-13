@@ -478,23 +478,36 @@ function renderOnline(presences) {
   }).join('');
 }
 
+let onlineChannel = null;
+
+function refreshOnlineFromState() {
+  if (!onlineChannel) return;
+  const state = onlineChannel.presenceState();
+  /* Chaque clé contient un tableau de métadonnées ; on prend la première */
+  const presences = Object.values(state)
+    .map(arr => arr[0])
+    .filter(Boolean);
+  renderOnline(presences);
+}
+
 function initOnlinePresence() {
-  const channel = db.channel('biblio-presence', {
+  onlineChannel = db.channel('biblio-presence', {
     config: { presence: { key: 'admin-' + Math.random().toString(36).slice(2) } },
   });
 
-  channel
-    .on('presence', { event: 'sync' }, () => {
-      const state = channel.presenceState();
-      /* Chaque clé contient un tableau de métadonnées ; on prend la première */
-      const presences = Object.values(state)
-        .map(arr => arr[0])
-        .filter(Boolean);
-      renderOnline(presences);
-    })
+  onlineChannel
+    .on('presence', { event: 'sync' }, refreshOnlineFromState)
     /* On s'abonne SANS .track() : l'admin observe sans apparaitre dans la liste */
     .subscribe();
 }
+
+/* Refresh manuel de la liste en ligne */
+document.getElementById('refreshOnline').addEventListener('click', () => {
+  const btn = document.getElementById('refreshOnline');
+  btn.textContent = '...'; btn.disabled = true;
+  refreshOnlineFromState();
+  setTimeout(() => { btn.textContent = '↻'; btn.disabled = false; }, 300);
+});
 
 /* Filtre connexions */
 document.getElementById('connSearch').addEventListener('input', e => {

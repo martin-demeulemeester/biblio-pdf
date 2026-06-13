@@ -189,9 +189,12 @@
 
           <!-- En ligne (temps reel) -->
           <div class="tab-panel" id="tab-online">
-            <p style="margin-bottom:14px;color:var(--muted);font-weight:600;font-size:.9rem;">
-              Visiteurs actuellement sur le site (mise a jour en temps reel).
-            </p>
+            <div style="margin-bottom:14px;display:flex;gap:10px;align-items:center;">
+              <p style="flex:1;margin:0;color:var(--muted);font-weight:600;font-size:.9rem;">
+                Visiteurs actuellement sur le site (mise a jour en temps reel).
+              </p>
+              <button id="refreshOnline" class="btn secondary btn-sm" title="Rafraichir">&#8635;</button>
+            </div>
             <div style="overflow-x:auto;">
               <table class="history-table" id="onlineTable">
                 <thead>
