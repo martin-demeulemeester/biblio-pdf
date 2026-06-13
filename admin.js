@@ -200,7 +200,7 @@ async function loadAll() {
   const [pdfsRes, dlRes, ratingRes, connRes, subRes] = await Promise.all([
     db.from('pdfs').select('*').order('created_at', { ascending: false }),
     db.from('downloads').select('id, pdf_id, user_pseudo, session_id, downloaded_at').order('downloaded_at', { ascending: false }),
-    db.from('ratings').select('pdf_id, score, user_pseudo'),
+    db.from('ratings').select('*'),
     db.from('connections').select('*').order('connected_at', { ascending: false }),
     db.from('submissions').select('*').order('submitted_at', { ascending: false }),
   ]);
@@ -221,6 +221,7 @@ async function loadAll() {
   renderAdminList();
   renderSubmissions();
   renderHistory(allDownloads);
+  renderRatings(allRatings);
   renderConnections(allConnections);
 }
 
@@ -342,6 +343,40 @@ function renderHistory(rows) {
     return `<tr>
       <td>${pdf ? pdf.title : '<em style="color:var(--muted)">Document supprime</em>'}</td>
       <td><strong>${d.displayPseudo}</strong></td>
+      <td>${date}</td>
+    </tr>`;
+  }).join('');
+}
+
+/* ─── Notes ─── */
+function renderRatings(rows) {
+  const body = document.getElementById('ratingsBody');
+  if (!body) return;
+
+  if (!rows || rows.length === 0) {
+    body.innerHTML = '<tr><td colspan="4" class="history-empty">Aucune note enregistree.</td></tr>';
+    return;
+  }
+
+  /* Tri du plus recent au plus ancien si une date est disponible */
+  const dateKey = rows[0].created_at ? 'created_at' : (rows[0].rated_at ? 'rated_at' : null);
+  const sorted = dateKey
+    ? [...rows].sort((a, b) => new Date(b[dateKey]) - new Date(a[dateKey]))
+    : rows;
+
+  body.innerHTML = sorted.map(r => {
+    const pdf    = allPdfs.find(p => p.id === r.pdf_id);
+    const pseudo = r.user_pseudo
+      ? `<strong>${r.user_pseudo}</strong>`
+      : `<em style="color:var(--muted)">Anonyme</em>`;
+    const stars  = '★'.repeat(r.score) + '☆'.repeat(Math.max(0, 5 - r.score));
+    const date   = dateKey && r[dateKey]
+      ? new Date(r[dateKey]).toLocaleString('fr-FR', { dateStyle: 'short', timeStyle: 'short' })
+      : '—';
+    return `<tr>
+      <td>${pdf ? pdf.title : '<em style="color:var(--muted)">Document supprime</em>'}</td>
+      <td>${pseudo}</td>
+      <td title="${r.score}/5" style="color:var(--amber);white-space:nowrap;">${stars} <span style="color:var(--muted)">${r.score}/5</span></td>
       <td>${date}</td>
     </tr>`;
   }).join('');
@@ -553,6 +588,32 @@ document.getElementById('historySearch')?.addEventListener('input', e => {
     );
   });
   renderHistory(filtered);
+});
+
+/* Refresh notes */
+document.getElementById('refreshRatings')?.addEventListener('click', async () => {
+  const btn = document.getElementById('refreshRatings');
+  btn.textContent = '...'; btn.disabled = true;
+  const { data } = await db.from('ratings').select('*');
+  allRatings = data || [];
+  const search = document.getElementById('ratingsSearch');
+  if (search) search.value = '';
+  renderRatings(allRatings);
+  btn.textContent = '↻'; btn.disabled = false;
+});
+
+/* Filtre notes */
+document.getElementById('ratingsSearch')?.addEventListener('input', e => {
+  const q = e.target.value.toLowerCase().trim();
+  if (!q) { renderRatings(allRatings); return; }
+  const filtered = allRatings.filter(r => {
+    const pdf = allPdfs.find(p => p.id === r.pdf_id);
+    return (
+      (pdf?.title || '').toLowerCase().includes(q) ||
+      (r.user_pseudo || '').toLowerCase().includes(q)
+    );
+  });
+  renderRatings(filtered);
 });
 
 /* ─── Tabs ─── */
