@@ -502,7 +502,7 @@ function initOnlinePresence() {
 }
 
 /* Refresh manuel de la liste en ligne */
-document.getElementById('refreshOnline').addEventListener('click', () => {
+document.getElementById('refreshOnline')?.addEventListener('click', () => {
   const btn = document.getElementById('refreshOnline');
   btn.textContent = '...'; btn.disabled = true;
   refreshOnlineFromState();
@@ -510,7 +510,7 @@ document.getElementById('refreshOnline').addEventListener('click', () => {
 });
 
 /* Filtre connexions */
-document.getElementById('connSearch').addEventListener('input', e => {
+document.getElementById('connSearch')?.addEventListener('input', e => {
   const q = e.target.value.toLowerCase().trim();
   if (!q) { renderConnections(allConnections); return; }
   renderConnections(allConnections.filter(c =>
@@ -524,7 +524,7 @@ document.getElementById('connSearch').addEventListener('input', e => {
 });
 
 /* Refresh connexions */
-document.getElementById('refreshConnections').addEventListener('click', async () => {
+document.getElementById('refreshConnections')?.addEventListener('click', async () => {
   const btn = document.getElementById('refreshConnections');
   btn.textContent = '...'; btn.disabled = true;
   const { data } = await db.from('connections').select('*').order('connected_at', { ascending: false });
@@ -535,7 +535,7 @@ document.getElementById('refreshConnections').addEventListener('click', async ()
 });
 
 /* Refresh historique */
-document.getElementById('refreshHistory').addEventListener('click', async () => {
+document.getElementById('refreshHistory')?.addEventListener('click', async () => {
   const btn = document.getElementById('refreshHistory');
   btn.textContent = '...'; btn.disabled = true;
   const { data } = await db.from('downloads').select('id, pdf_id, user_pseudo, session_id, downloaded_at').order('downloaded_at', { ascending: false });
@@ -546,7 +546,7 @@ document.getElementById('refreshHistory').addEventListener('click', async () => 
 });
 
 /* Filtre historique */
-document.getElementById('historySearch').addEventListener('input', e => {
+document.getElementById('historySearch')?.addEventListener('input', e => {
   const q = e.target.value.toLowerCase().trim();
   if (!q) { renderHistory(allDownloads); return; }
   const filtered = allDownloads.filter(d => {
