@@ -47,6 +47,8 @@ function savePseudo(p) {
   if (biblioPresenceChannel) {
     biblioPresenceChannel.track({ online_at: new Date().toISOString(), pseudo: userPseudo });
   }
+  /* Associe le pseudo a la connexion deja enregistree pour cette session */
+  if (typeof updateConnectionPseudo === 'function') updateConnectionPseudo();
 }
 
 function openPseudoModal(onConfirm, required = false) {
@@ -624,72 +626,86 @@ function updateCursorTargets() { /* curseur natif */ }
 function isLikelyBot() {
   const ua = (navigator.userAgent || '').toLowerCase();
 
-  /* Signatures de bots et frameworks de scraping connus */
+  /* Signatures de bots et frameworks de scraping connus (fiables) */
   const BOT_UA = ['bot', 'crawl', 'spider', 'scrape', 'headless',
     'phantom', 'puppeteer', 'playwright', 'selenium', 'python',
     'curl', 'wget', 'httpclient', 'java/', 'go-http', 'okhttp',
     'axios', 'node-fetch', 'lighthouse', 'pingdom', 'gtmetrix'];
   if (BOT_UA.some(k => ua.includes(k))) return true;
 
-  /* WebDriver actif (Selenium, automatisation) */
+  /* WebDriver actif (Selenium, automatisation) — signal fiable */
   if (navigator.webdriver) return true;
 
-  /* Navigateurs headless : pas de plugins ni de langues déclarées */
-  if (!navigator.languages || navigator.languages.length === 0) return true;
-
-  /* Chrome headless expose souvent un UA "HeadlessChrome" déjà capté ci-dessus,
-     mais on vérifie aussi l'absence d'écran réel */
-  if (window.outerWidth === 0 && window.outerHeight === 0) return true;
-
+  /* Les heuristiques navigator.languages / outerWidth ont ete retirees :
+     elles bloquaient de vrais visiteurs (mobiles, modes prives, iframes). */
   return false;
+}
+
+/* Calcule une source de trafic lisible depuis le referrer */
+function computeReferrer() {
+  const rawRef = document.referrer;
+  if (!rawRef) return 'Acces direct';
+  try {
+    const host = new URL(rawRef).hostname.replace('www.', '');
+    if (host.includes('google'))      return 'Google';
+    if (host.includes('bing'))        return 'Bing';
+    if (host.includes('yahoo'))       return 'Yahoo';
+    if (host.includes('duckduckgo'))  return 'DuckDuckGo';
+    if (host.includes(location.hostname)) return 'Acces direct';
+    return host;
+  } catch { return rawRef.slice(0, 60); }
 }
 
 /* ─── Enregistrement de la connexion ─── */
 async function recordConnection() {
   if (sessionStorage.getItem('biblio_connected')) return;
-  sessionStorage.setItem('biblio_connected', '1');
 
-  /* Ne pas appeler l'API IP ni enregistrer pour les bots détectés */
+  /* On ne compte pas les bots detectes */
   if (isLikelyBot()) return;
 
-  const BOT_ORGS = ['amazon', 'aws', 'google', 'microsoft', 'cloudflare',
+  const BOT_ORGS = ['amazon', 'aws', 'microsoft', 'cloudflare',
     'digitalocean', 'linode', 'ovh', 'hetzner', 'vultr', 'netlify',
-    'fastly', 'akamai', 'datacenter', 'hosting', 'server'];
+    'fastly', 'akamai', 'datacenter', 'hosting'];
 
+  /* Geoloc best-effort : si ipapi echoue ou est sature, on enregistre quand meme */
+  let geo = {};
   try {
     const res = await fetch('https://ipapi.co/json/');
-    const geo = await res.json();
+    if (res.ok) geo = await res.json();
+  } catch { /* ipapi indispo : on continue sans geoloc */ }
 
-    /* Ignorer les IPs de datacenters / bots */
-    const org = (geo.org || '').toLowerCase();
-    if (BOT_ORGS.some(k => org.includes(k))) return;
+  /* Filtrer les datacenters seulement si on a effectivement l'info */
+  const org = (geo.org || '').toLowerCase();
+  if (org && BOT_ORGS.some(k => org.includes(k))) return;
 
-    /* Mémoriser la géoloc pour les notifications */
+  if (geo.country_name || geo.city) {
     visitorGeo = { country: geo.country_name || null, city: geo.city || null };
+  }
 
-    const rawRef = document.referrer;
-    let referrer = 'Acces direct';
-    if (rawRef) {
-      try {
-        const host = new URL(rawRef).hostname.replace('www.', '');
-        if (host.includes('google'))          referrer = 'Google';
-        else if (host.includes('bing'))       referrer = 'Bing';
-        else if (host.includes('yahoo'))      referrer = 'Yahoo';
-        else if (host.includes('duckduckgo')) referrer = 'DuckDuckGo';
-        else referrer = host;
-      } catch { referrer = rawRef.slice(0, 60); }
-    }
+  const { error } = await db.from('connections').insert({
+    user_pseudo:  userPseudo || null,
+    session_id:   sessionId,
+    ip_address:   geo.ip || null,
+    country:      geo.country_name || null,
+    city:         geo.city         || null,
+    region:       geo.region       || null,
+    referrer:     computeReferrer(),
+  });
 
-    await db.from('connections').insert({
-      user_pseudo:  userPseudo || null,
-      session_id:   sessionId,
-      ip_address:   geo.ip,
-      country:      geo.country_name || null,
-      city:         geo.city         || null,
-      region:       geo.region       || null,
-      referrer,
-    });
-  } catch (e) { /* silencieux — ne casse pas la page */ }
+  /* On ne marque la session comme enregistree qu'en cas de succes,
+     pour reessayer au prochain chargement si l'insert a echoue */
+  if (!error) sessionStorage.setItem('biblio_connected', '1');
+}
+
+/* Met a jour la connexion de cette session avec le pseudo choisi apres coup */
+async function updateConnectionPseudo() {
+  if (!userPseudo) return;
+  try {
+    await db.from('connections')
+      .update({ user_pseudo: userPseudo })
+      .eq('session_id', sessionId)
+      .is('user_pseudo', null);
+  } catch { /* silencieux */ }
 }
 
 recordConnection();
