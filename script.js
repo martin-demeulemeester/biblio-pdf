@@ -222,11 +222,13 @@ async function loadData() {
     });
     Object.keys(grouped).forEach(id => {
       const rows  = grouped[id];
-      const total = rows.reduce((s, r) => s + r.score, 0);
       const mine  = userPseudo ? rows.find(r => r.user_pseudo === userPseudo) : null;
+      /* Seules les notes >= 4 comptent dans la moyenne et le nombre d'avis affichés */
+      const counted = rows.filter(r => r.score >= 4);
+      const total   = counted.reduce((s, r) => s + r.score, 0);
       ratingsData[id] = {
-        avg: (total / rows.length).toFixed(1),
-        count: rows.length,
+        avg: counted.length ? (total / counted.length).toFixed(1) : 0,
+        count: counted.length,
         myScore: mine ? mine.score : 0,
       };
     });
