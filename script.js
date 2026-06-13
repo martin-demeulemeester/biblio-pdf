@@ -658,6 +658,35 @@ async function recordConnection() {
 
 recordConnection();
 
+/* ─── Présence temps réel (nombre de visiteurs en ligne) ─── */
+function initPresence() {
+  /* On ne compte pas les bots dans la présence */
+  if (isLikelyBot()) return;
+
+  const onlineCountEl = document.getElementById('onlineCount');
+  if (!onlineCountEl) return;
+
+  const channel = db.channel('biblio-presence', {
+    config: { presence: { key: sessionId } },
+  });
+
+  channel
+    .on('presence', { event: 'sync' }, () => {
+      const state = channel.presenceState();
+      onlineCountEl.textContent = Object.keys(state).length || 1;
+    })
+    .subscribe(async status => {
+      if (status === 'SUBSCRIBED') {
+        await channel.track({ online_at: new Date().toISOString() });
+      }
+    });
+
+  /* Quitter proprement le canal à la fermeture de l'onglet */
+  window.addEventListener('beforeunload', () => { channel.untrack(); db.removeChannel(channel); });
+}
+
+initPresence();
+
 /* ─── Visionneuse PDF (iframe) ─── */
 function openPdfViewer(url, title) {
   document.getElementById('pdfViewerTitle').textContent = title;

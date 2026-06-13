@@ -445,6 +445,26 @@ main { flex: 1; }
 }
 .stat-badge strong { color: var(--amber); }
 
+/* Badge "en ligne" avec point vert pulsant */
+.stat-online strong { color: var(--green); }
+.online-dot {
+  width: 9px; height: 9px;
+  background: var(--green); border-radius: 50%;
+  border: 2px solid var(--outline);
+  position: relative;
+  flex-shrink: 0;
+}
+.online-dot::after {
+  content: ''; position: absolute; inset: -2px;
+  border-radius: 50%; background: var(--green);
+  opacity: .6; animation: onlinePulse 1.8s ease-out infinite;
+}
+@keyframes onlinePulse {
+  0%   { transform: scale(1);   opacity: .6; }
+  70%  { transform: scale(2.4); opacity: 0; }
+  100% { transform: scale(2.4); opacity: 0; }
+}
+
 /* ─── Liste PDFs (pleine largeur) ─── */
 .pdf-list {
   display: flex;
