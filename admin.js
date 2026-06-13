@@ -463,6 +463,28 @@ document.getElementById('connSearch').addEventListener('input', e => {
   ));
 });
 
+/* Refresh connexions */
+document.getElementById('refreshConnections').addEventListener('click', async () => {
+  const btn = document.getElementById('refreshConnections');
+  btn.textContent = '...'; btn.disabled = true;
+  const { data } = await db.from('connections').select('*').order('connected_at', { ascending: false });
+  allConnections = data || [];
+  document.getElementById('connSearch').value = '';
+  renderConnections(allConnections);
+  btn.textContent = '↻'; btn.disabled = false;
+});
+
+/* Refresh historique */
+document.getElementById('refreshHistory').addEventListener('click', async () => {
+  const btn = document.getElementById('refreshHistory');
+  btn.textContent = '...'; btn.disabled = true;
+  const { data } = await db.from('downloads').select('id, pdf_id, user_pseudo, session_id, downloaded_at').order('downloaded_at', { ascending: false });
+  allDownloads = data || [];
+  document.getElementById('historySearch').value = '';
+  renderHistory(allDownloads);
+  btn.textContent = '↻'; btn.disabled = false;
+});
+
 /* Filtre historique */
 document.getElementById('historySearch').addEventListener('input', e => {
   const q = e.target.value.toLowerCase().trim();
